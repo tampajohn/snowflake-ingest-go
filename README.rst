@@ -30,4 +30,4 @@ You can add the Snowflake Ingest Service SDK by running the following command
 
 .. code-block:: bash
 
-    go get github.com/tampajohn/
+    go get github.com/tampajohn/snowflake-ingest-go
