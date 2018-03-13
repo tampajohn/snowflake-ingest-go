@@ -15,7 +15,7 @@ Go 1.8+
 -------
 
 The Snowflake Ingest Service SDK can only be used with Go 1.8 or higher. Previous versions
-may work
+may work, but no guarantees are made.
 
 A 2048-bit RSA key pair
 -----------------------
