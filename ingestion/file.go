@@ -45,7 +45,7 @@ func (r *IngestFileRequest) DoIngest(c context.Context) (*IngestFileResponse, er
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Print(u)
 	u.Path = fmt.Sprintf(insertFilePath, r.PipeName)
 	q := u.Query()
 	if r.RequestID != nil && len(*r.RequestID) > 0 {

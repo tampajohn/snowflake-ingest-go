@@ -1,7 +1,10 @@
 package ingestion
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,9 +14,15 @@ import (
 
 type FileTestSuite struct {
 	suite.Suite
-	Request       *Request
-	TestFile      string
-	ExpectedFiles []File
+	Request                        *Request
+	RequestID                      string
+	TestFile                       string
+	TestManager                    *Manager
+	ExpectedFiles                  []File
+	ExpectedOkResponse             *IngestFileResponse
+	ExpectedContinueResponseWithID *IngestFileResponse
+	BadSchemeManager               *Manager
+	ErrorExpectedMissingSchema     error
 }
 
 type mockRequester struct {
@@ -22,12 +31,16 @@ type mockRequester struct {
 }
 
 func (m *mockRequester) Do(r *http.Request) (*http.Response, error) {
-	switch r.URL.Path {
-	case "/v1/data/pipes/test_pipe/insertFiles":
-		return &http.Response{StatusCode: http.StatusOK}, nil
-	default:
-		return &http.Response{StatusCode: http.StatusNotFound}, errorNotFound
+	switch r.URL.Query().Get("requestId") {
+	case "TEST_ID":
+		return &http.Response{StatusCode: http.StatusContinue}, nil
 	}
+	switch r.URL.Path {
+	case "/v1/data/pipes/TEST_PIPE/insertFiles":
+		return &http.Response{StatusCode: http.StatusOK}, nil
+	}
+
+	return &http.Response{StatusCode: http.StatusNotFound}, errorNotFound
 }
 
 func (suite *FileTestSuite) SetupTest() {
@@ -38,10 +51,31 @@ func (suite *FileTestSuite) SetupTest() {
 		nil,
 	)
 	m.client = &mockRequester{}
+	suite.TestManager = m
+	suite.BadSchemeManager = &Manager{
+		Account:  "TEST_ACCOUNT",
+		PipeName: "TEST_PIPE",
+		Port:     443,
+		Scheme:   "",
+		UserName: "TEST_USER",
+		client:   &mockRequester{},
+	}
 	suite.Request = m.NewRequest(nil)
 	suite.TestFile = "TEST_FILE"
 	suite.ExpectedFiles = []File{
 		File{Path: suite.TestFile},
+	}
+	suite.ExpectedOkResponse = &IngestFileResponse{
+		&http.Response{
+			StatusCode: http.StatusOK,
+		},
+	}
+	suite.RequestID = "TEST_ID"
+	suite.ErrorExpectedMissingSchema = &url.Error{Op: "parse", URL: "://TEST_ACCOUNT.us-east-1.snowflakecomputing.com:443", Err: fmt.Errorf("missing protocol scheme")}
+	suite.ExpectedContinueResponseWithID = &IngestFileResponse{
+		&http.Response{
+			StatusCode: http.StatusContinue,
+		},
 	}
 }
 
@@ -51,88 +85,33 @@ func (suite *FileTestSuite) TestAddFiles() {
 	assert.Equal(suite.T(), suite.ExpectedFiles, r.Files)
 }
 
+func (suite *FileTestSuite) TestDoIngest() {
+	suite.SetupTest()
+	actual, err := suite.Request.AddFiles(suite.TestFile).DoIngest(context.Background())
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), suite.ExpectedOkResponse, actual)
+}
+
 func TestFileSuite(t *testing.T) {
 	suite.Run(t, new(FileTestSuite))
 }
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"net/http"
-// 	"net/url"
-// 	"testing"
+func (suite *FileTestSuite) TestDoIngestBadScheme() {
 
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// )
+	actual, err := suite.BadSchemeManager.NewRequest(nil).AddFiles(suite.TestFile).DoIngest(context.Background())
 
-// func TestAddFiles(t *testing.T) {
-// 	expected := &IngestFileRequest{
-// 		Manager: &Manager{},
-// 		Files: []File{File{
-// 			Path: "testfile.csv",
-// 		}},
-// 	}
-// 	m := &Manager{}
-// 	actual := m.AddFiles("testfile.csv")
-// 	assert.Equal(t, expected, actual)
-// }
+	assert.Nil(suite.T(), actual)
+	assert.Equal(suite.T(), suite.ErrorExpectedMissingSchema, err)
+}
 
-// func TestDoIngest(t *testing.T) {
-// 	m := &Manager{
-// 		client:   &mockRequester{},
-// 		Account:  "test_account",
-// 		PipeName: "test_pipe",
-// 		UserName: "test_user",
-// 		Scheme:   "https",
-// 		Port:     443,
-// 	}
+func (suite *FileTestSuite) TestDoIngestWithRequestID() {
 
-// 	r := &IngestFileRequest{
-// 		Manager: m,
-// 		Files: []File{
-// 			File{
-// 				Path: "test.csv",
-// 			},
-// 		},
-// 	}
+	actual, err := suite.TestManager.NewRequest(&suite.RequestID).AddFiles(suite.TestFile).DoIngest(context.Background())
 
-// 	expected := &IngestFileResponse{
-// 		&http.Response{
-// 			StatusCode: 200,
-// 		},
-// 	}
-
-// 	actual, err := r.DoIngest(context.Background())
-
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, expected, actual)
-// }
-
-// func TestDoIngestBadScheme(t *testing.T) {
-// 	m := &Manager{
-// 		client:   &mockRequester{},
-// 		Account:  "test_account",
-// 		PipeName: "test_pipe",
-// 		UserName: "test_user",
-// 		Scheme:   "not_scheme",
-// 		Port:     443,
-// 	}
-
-// 	r := &IngestFileRequest{
-// 		Manager: m,
-// 		Files: []File{
-// 			File{
-// 				Path: "test.csv",
-// 			},
-// 		},
-// 	}
-
-// 	actual, err := r.DoIngest(context.Background())
-
-// 	assert.Nil(t, actual)
-// 	assert.Equal(t, &url.Error{Op: "parse", URL: "not_scheme://test_account.us-east-1.snowflakecomputing.com:443", Err: fmt.Errorf("first path segment in URL cannot contain colon")}, err)
-// }
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), suite.ExpectedContinueResponseWithID, actual)
+}
 
 // func TestDoIngestNoClient(t *testing.T) {
 // 	m := &Manager{
