@@ -22,9 +22,11 @@ func (r *Request) DoReport(beginMark ...string) (*IngestReportResponse, error) {
 	}
 
 	u.Path = fmt.Sprintf(insertReportPath, r.PipeName)
+	q := u.Query()
 	if r.RequestID != nil && len(*r.RequestID) > 0 {
-		u.Query().Add("requestId", *r.RequestID)
+		q.Add("requestId", *r.RequestID)
 	}
+	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	req.Header.Add("Authorization", "Bearer "+r.token)

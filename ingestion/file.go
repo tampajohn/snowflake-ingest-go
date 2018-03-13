@@ -47,9 +47,11 @@ func (r *IngestFileRequest) DoIngest(c context.Context) (*IngestFileResponse, er
 	}
 
 	u.Path = fmt.Sprintf(insertFilePath, r.PipeName)
+	q := u.Query()
 	if r.RequestID != nil && len(*r.RequestID) > 0 {
-		u.Query().Add("requestId", *r.RequestID)
+		q.Add("requestId", *r.RequestID)
 	}
+	u.RawQuery = q.Encode()
 	b, _ := json.Marshal(r)
 
 	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(b))
