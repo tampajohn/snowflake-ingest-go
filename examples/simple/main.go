@@ -17,7 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error reading pem file.")
 	}
-	m, err := ingestion.NewManager("bringhub", "john", "YOUR_DB.YOUR_SCHEMA.YOUR_PIPE", &pkeyBytes)
+	m, err := ingestion.NewManager("YOUR_ACCUNT", "YOUR_USER", "YOUR_DB.YOUR_SCHEMA.YOUR_PIPE", &pkeyBytes)
 	if err != nil {
 		log.Fatal("Invalid arguments passed to NewManager:", err)
 	}
