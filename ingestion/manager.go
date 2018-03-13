@@ -39,8 +39,8 @@ const (
 )
 
 var (
-	noClientError = errors.New("No client supplied.  Use WithClient to configure a custom http.Client")
-	notFoundError = errors.New("Not Found")
+	errorNoClient = errors.New("No client supplied.  Use WithClient to configure a custom http.Client")
+	errorNotFound = errors.New("Not Found")
 )
 
 // Requester is an interface for making HTTP Calls and can be fulfilled by
@@ -60,6 +60,7 @@ type Manager struct {
 	client   Requester
 }
 
+// Request is the base request used by Ingestion and Reporting
 type Request struct {
 	*Manager
 	RequestID *string

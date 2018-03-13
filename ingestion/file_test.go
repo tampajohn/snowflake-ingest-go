@@ -14,7 +14,6 @@ type FileTestSuite struct {
 	Request       *Request
 	TestFile      string
 	ExpectedFiles []File
-	ExpectedToken string
 }
 
 type mockRequester struct {
@@ -27,7 +26,7 @@ func (m *mockRequester) Do(r *http.Request) (*http.Response, error) {
 	case "/v1/data/pipes/test_pipe/insertFiles":
 		return &http.Response{StatusCode: http.StatusOK}, nil
 	default:
-		return &http.Response{StatusCode: http.StatusNotFound}, notFoundError
+		return &http.Response{StatusCode: http.StatusNotFound}, errorNotFound
 	}
 }
 
@@ -44,7 +43,6 @@ func (suite *FileTestSuite) SetupTest() {
 	suite.ExpectedFiles = []File{
 		File{Path: suite.TestFile},
 	}
-	suite.ExpectedToken = `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MjA5MTMzMzE1OTQ0NzkxNDYsImlhdCI6MTUyMDkxMzMzMTU5NDQ3OTI2NSwiaXNzIjoiQlJJTkdIVUIuSk9ITiJ9.Qk-gPFF4gRAq9_HD1m0b8kdHGJbUTmpIqrANKiLUoSEw8jIR_ZfbwqUtyl5F1iqr-U03fWa5vxYJfF6vHiGfcgVrIjbMcjUOjb4Hf1Mf5fwG0dOshKTTEe5J322zINl14fGqLP3ze4t9vShv4fEsfuwIdAsQZwH25dsUgE94W3ALjGDUwWozOV-aeLqoahFO-1OXt7veb7zsA8lDzkihqQojZQ4lW8lOR6RIGhWECK0lnD_EYnEfn_aeSoId4gsWUlrkdGxrCBwz1JaOB6nAZYmGzpwuMHf4rNCxU3AC7Tpj0mF2yQzMPvJsGxCRnOde8lQQ-buXRqz2ClUv-lW7tw`
 }
 
 func (suite *FileTestSuite) TestAddFiles() {

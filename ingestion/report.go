@@ -34,7 +34,7 @@ func (r *Request) DoReport(beginMark ...string) (*IngestReportResponse, error) {
 	if r.client != nil {
 		resp, err = r.client.Do(req)
 	} else {
-		return nil, noClientError
+		return nil, errorNoClient
 	}
 
 	if err != nil {
