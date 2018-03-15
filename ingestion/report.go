@@ -26,6 +26,9 @@ func (r *Request) DoReport(beginMark ...string) (*IngestReportResponse, error) {
 	if r.RequestID != nil && len(*r.RequestID) > 0 {
 		q.Add("requestId", *r.RequestID)
 	}
+	if len(beginMark) > 0 {
+		q.Add("beginMark", beginMark[0])
+	}
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequest("GET", u.String(), nil)
